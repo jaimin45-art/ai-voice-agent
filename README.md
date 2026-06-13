@@ -151,6 +151,8 @@ AGENT_NAME=Alex
 
 ---
 
+One More Thing Required TWILIO premium plan so you can succesfull recive succesfull calls from Twilio 
+
 ## 6. Expose local backend (for webhooks)
 
 Retell needs to reach your backend. Use ngrok:
