@@ -1,9 +1,9 @@
--- ============================================================
+
 -- Dialoft AI — Supabase Schema
 -- Run this in the Supabase SQL editor to set up all tables.
--- ============================================================
 
--- ── calls ────────────────────────────────────────────────────
+
+-- ── calls
 CREATE TABLE IF NOT EXISTS calls (
   id                  BIGSERIAL PRIMARY KEY,
   call_id             TEXT UNIQUE NOT NULL,       -- Retell call ID
@@ -40,7 +40,7 @@ CREATE INDEX IF NOT EXISTS calls_created_at_idx ON calls (created_at DESC);
 CREATE INDEX IF NOT EXISTS calls_qualified_idx  ON calls (qualified);
 CREATE INDEX IF NOT EXISTS calls_status_idx     ON calls (status);
 
--- ── transcripts ──────────────────────────────────────────────
+-- ── transcripts 
 CREATE TABLE IF NOT EXISTS transcripts (
   id         BIGSERIAL PRIMARY KEY,
   call_id    TEXT NOT NULL REFERENCES calls(call_id) ON DELETE CASCADE,
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS transcripts (
 
 CREATE INDEX IF NOT EXISTS transcripts_call_id_idx ON transcripts (call_id);
 
--- ── tool_calls ───────────────────────────────────────────────
+-- ── tool_calls
 CREATE TABLE IF NOT EXISTS tool_calls (
   id               BIGSERIAL PRIMARY KEY,
   call_id          TEXT,           -- nullable — tool might fire before call row exists

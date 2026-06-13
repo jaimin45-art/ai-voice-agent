@@ -11,46 +11,118 @@ router.post("/retell", verifyRetellSignature, async (req, res) => {
   console.log(`📞 Retell webhook: ${eventType} | call_id: ${call?.call_id}`);
 
   try {
+
+    // CALL STARTED
+   
     if (eventType === "call_started") {
-      await supabase
+
+      // see calls already exist in database or not ?
+      const { data: existing } = await supabase
         .from("calls")
-        .update({ status: "in_progress", started_at: new Date().toISOString() })
-        .eq("call_id", call.call_id);
+        .select("*")
+        .eq("call_id", call.call_id)
+        .single();
+
+      if (!existing) {
+
+        const row = {
+          call_id: call.call_id,
+          owner_name: "Unknown",
+          property_address: "Unknown",
+          lead_source: "",
+          agent_name: call.agent_name || null,
+          to_number: call.to_number || null,
+          status: "in_progress",
+          started_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        };
+
+        const { error } = await supabase
+          .from("calls")
+          .insert(row);
+
+        if (error) {
+          console.error("INSERT ERROR:", error);
+        }
+
+      } else {
+
+        const { error } = await supabase
+          .from("calls")
+          .update({
+            status: "in_progress",
+            started_at: new Date().toISOString(),
+          })
+          .eq("call_id", call.call_id);
+
+        if (error) {
+          console.error(error);
+        }
+
+      }
     }
 
+    
+    // CALL ENDED
+    
     if (eventType === "call_ended") {
-      await supabase
+
+      const { error } = await supabase
         .from("calls")
         .update({
           status: "completed",
           ended_at: new Date().toISOString(),
-          duration_seconds: call.duration_ms ? Math.round(call.duration_ms / 1000) : null,
-          disconnection_reason: call.disconnection_reason || null,
+          duration_seconds:
+            call.duration_ms
+              ? Math.round(call.duration_ms / 1000)
+              : null,
+          disconnection_reason:
+            call.disconnection_reason || null,
         })
         .eq("call_id", call.call_id);
 
-      if (call.transcript_object && Array.isArray(call.transcript_object)) {
-        const utterances = call.transcript_object.map((u, idx) => ({
+      if (error) {
+        console.error(error);
+      }
+
+      if (
+        call.transcript_object &&
+        Array.isArray(call.transcript_object)
+      ) {
+
+        const transcript = call.transcript_object.map((u, i) => ({
           call_id: call.call_id,
-          sequence: idx,
+          sequence: i,
           role: u.role,
           content: u.content,
-          words: u.words ? JSON.stringify(u.words) : null,
+          words: u.words
+            ? JSON.stringify(u.words)
+            : null,
         }));
 
-        if (utterances.length > 0) {
-          await supabase
-            .from("transcripts")
-            .upsert(utterances, { onConflict: "call_id,sequence" });
+        const { error: transcriptError } = await supabase
+          .from("transcripts")
+          .upsert(transcript, {
+            onConflict: "call_id,sequence",
+          });
+
+        if (transcriptError) {
+          console.error("TRANSCRIPT ERROR:", transcriptError);
         }
+
       }
+
     }
 
+    
+    // CALL ANALYZED
+    
     if (eventType === "call_analyzed") {
+
       const analysis = call.call_analysis || {};
       const custom = analysis.custom_analysis_data || {};
 
-      await supabase
+      const { error } = await supabase
         .from("calls")
         .update({
           status: "analyzed",
@@ -58,20 +130,38 @@ router.post("/retell", verifyRetellSignature, async (req, res) => {
           sell_timeline: custom.sell_timeline || null,
           motivation: custom.motivation || null,
           objections: custom.objections || null,
-          follow_up_required: custom.follow_up_required ?? null,
-          call_sentiment: custom.call_sentiment || analysis.user_sentiment || null,
-          call_summary: analysis.call_summary || null,
-          agent_sentiment: analysis.agent_sentiment || null,
+          follow_up_required:
+            custom.follow_up_required ?? null,
+          call_sentiment:
+            custom.call_sentiment ||
+            analysis.user_sentiment ||
+            null,
+          call_summary:
+            analysis.call_summary || null,
+          agent_sentiment:
+            analysis.agent_sentiment || null,
           analyzed_at: new Date().toISOString(),
         })
         .eq("call_id", call.call_id);
+
+      if (error) {
+        console.error(error);
+      }
+
     }
 
-    return res.status(200).json({ received: true });
+    res.json({ success: true });
+
   } catch (err) {
-    console.error("Webhook processing error:", err);
-    return res.status(500).json({ error: "Webhook processing failed" });
+
+    console.error(err);
+
+    res.status(500).json({
+      error: err.message,
+    });
+
   }
+
 });
 
 module.exports = router;

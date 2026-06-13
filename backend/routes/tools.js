@@ -4,14 +4,17 @@ const supabase = require("../lib/supabase");
 const router = express.Router();
 
 router.post("/get_property_estimate", async (req, res) => {
-  const { call_id, args } = req.body;
-  const property_address = args?.property_address || req.body.property_address;
+  console.log("Tool called — body:", JSON.stringify(req.body));
+  
+  const { call_id, args, input } = req.body;
+  
+  const property_address = 
+    args?.property_address || 
+    input?.property_address ||
+    req.body.property_address ||
+    "142 Maple Street, Austin TX";  // fallback
 
-  console.log(`🏠 Property estimate | call_id: ${call_id} | address: ${property_address}`);
-
-  if (!property_address) {
-    return res.status(400).json({ error: "property_address is required" });
-  }
+  console.log(`🏠 Property estimate | address: ${property_address}`);
 
   const estimate = generateMockEstimate(property_address);
 
