@@ -198,7 +198,9 @@ AGENT_NAME=Alex
 
 ---
 
-One More Thing Required TWILIO premium plan so you can succesfull recive succesfull calls from Twilio 
+Note:
+Due to Twilio trial limitations, outbound calling may require a paid Twilio account.
+For demonstration purposes, this project also supports testing directly from the Retell Dashboard, with webhook events stored in Supabase and reflected in the React dashboard.
 
 ## 6. Expose local backend (for webhooks)
 
